@@ -1,28 +1,35 @@
-import React from 'react';
-import {
-  AppBar, Toolbar, Typography
-} from '@mui/material';
-import './TopBar.css';
+import React, { useEffect, useState } from "react";
+import "./TopBar.css";
+import FetchModel from "../../lib/FetchModel";
 
-/**
- * Define TopBar, a React componment of project #5
- */
-class TopBar extends React.Component {
-  constructor(props) {
-    super(props);
-  }
+function TopBar({ context }) {
+  const [version, setVersion] = useState("");
 
-  render() {
-    return (
-      <AppBar className="topbar-appBar" position="absolute">
-        <Toolbar>
-          <Typography variant="h5" color="inherit">
-              This is the TopBar component
-          </Typography>
-        </Toolbar>
-      </AppBar>
-    );
-  }
+  useEffect(() => {
+    FetchModel("/test/info")
+      .then((data) => {
+        setVersion(data.__v || data.version || "Unknown");
+      })
+      .catch((err) => {
+        console.error("Error fetching version:", err);
+        setVersion("Error");
+      });
+  }, []);
+
+  return (
+    <div className="topbar">
+      {/* Left: App Name */}
+      <div className="topbar-left">
+        <h2>Photo App</h2>
+      </div>
+
+      {/* Right: Context + Version */}
+      <div className="topbar-right">
+        <span className="context">{context}</span>
+        <span className="version">Version: {version}</span>
+      </div>
+    </div>
+  );
 }
 
 export default TopBar;
