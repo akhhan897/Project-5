@@ -1,48 +1,58 @@
-import React from 'react';
+import React from "react";
+import { Link } from "react-router-dom";
 import {
   Divider,
   List,
   ListItem,
+  ListItemButton,
   ListItemText,
   Typography,
-}
-from '@mui/material';
-import './userList.css';
+  Paper,
+} from "@mui/material";
+import fetchModel from "../../lib/fetchModelData";
+import "./userList.css";
 
-/**
- * Define UserList, a React component of project #5
- */
 class UserList extends React.Component {
   constructor(props) {
     super(props);
+    this.state = {
+      users: [],
+    };
+  }
+
+  componentDidMount() {
+    fetchModel("/user/list")
+      .then((result) => {
+        this.setState({ users: result.data });
+      })
+      .catch((err) => {
+        console.error("Error fetching users:", err);
+      });
   }
 
   render() {
+    const { users } = this.state;
+
     return (
-      <div>
-        <Typography variant="body1">
-          This is the user list, which takes up 3/12 of the window.
-          You might choose to use <a href="https://mui.com/components/lists/">Lists</a> and <a href="https://mui.com/components/dividers/">Dividers</a> to
-          display your users like so:
+      <Paper elevation={3} className="user-list-container">
+        <Typography variant="h6" className="user-list-title">
+          Users
         </Typography>
-        <List component="nav">
-          <ListItem>
-            <ListItemText primary="Item #1" />
-          </ListItem>
-          <Divider />
-          <ListItem>
-            <ListItemText primary="Item #2" />
-          </ListItem>
-          <Divider />
-          <ListItem>
-            <ListItemText primary="Item #3" />
-          </ListItem>
-          <Divider />
+        <List component="nav" disablePadding>
+          {users.map((user) => (
+            <React.Fragment key={user._id}>
+              <ListItem disablePadding>
+                <ListItemButton component={Link} to={`/users/${user._id}`}>
+                  <ListItemText
+                    primary={`${user.first_name} ${user.last_name}`}
+                  />
+                </ListItemButton>
+              </ListItem>
+              <Divider />
+            </React.Fragment>
+          ))}
         </List>
-        <Typography variant="body1">
-          The model comes in from window.models.userListModel()
-        </Typography>
-      </div>
+      </Paper>
     );
   }
 }
