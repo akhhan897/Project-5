@@ -1,34 +1,42 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
+import { AppBar, Toolbar, Typography } from "@mui/material";
 import "./TopBar.css";
-import FetchModel from "../../lib/FetchModel";
+import fetchModel from "../../lib/fetchModelData.js";
 
+/**
+ * TopBar component
+ * - Shows app name on the left
+ * - Shows version from /test/info in the center-left area of the name
+ * - Shows context (current view info) on the right
+ */
 function TopBar({ context }) {
   const [version, setVersion] = useState("");
 
   useEffect(() => {
-    FetchModel("/test/info")
-      .then((data) => {
-        setVersion(data.__v || data.version || "Unknown");
-      })
-      .catch((err) => {
-        console.error("Error fetching version:", err);
-        setVersion("Error");
-      });
+    fetchModel("/test/info").then((info) => {
+      if (info && info.__v !== undefined) {
+        setVersion(info.__v);
+      }
+    });
   }, []);
 
   return (
-    <div className="topbar">
-      {/* Left: App Name */}
-      <div className="topbar-left">
-        <h2>Photo App</h2>
-      </div>
+    <AppBar className="topbar-appBar" position="absolute">
+      <Toolbar className="topbar-toolbar">
+        {/* Left: App name + version */}
+        <Typography variant="h5" className="topbar-name" color="inherit">
+          Aarav&nbsp;
+          <span className="topbar-version">
+            {version !== "" ? `v${version}` : ""}
+          </span>
+        </Typography>
 
-      {/* Right: Context + Version */}
-      <div className="topbar-right">
-        <span className="context">{context}</span>
-        <span className="version">Version: {version}</span>
-      </div>
-    </div>
+        {/* Right: Context text */}
+        <Typography variant="h5" className="topbar-context" color="inherit">
+          {context || ""}
+        </Typography>
+      </Toolbar>
+    </AppBar>
   );
 }
 

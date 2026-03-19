@@ -1,4 +1,33 @@
 .topbar-appBar {
-  height: 60;
-  justify-content: 'center';
+  background-color: #3f51b5; /* Material UI primary blue */
+  z-index: 1201; /* Above MUI Drawer */
+}
+
+.topbar-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.topbar-name {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.topbar-version {
+  font-size: 0.65em;
+  font-weight: 400;
+  opacity: 0.85;
+  letter-spacing: 0.3px;
+}
+
+.topbar-context {
+  font-size: 1.1rem;
+  font-weight: 400;
+  text-align: right;
+  opacity: 0.95;
 }
