@@ -1,14 +1,17 @@
 import React from 'react';
-import { Typography, Paper, Button } from '@mui/material';
 import { Link } from 'react-router-dom';
+import { Typography, Button } from '@mui/material';
+import fetchModel from '../../lib/fetchModelData';
 import './userDetail.css';
-import FetchModel from '../../lib/fetchModelData';
 
+/**
+ * Define UserDetail, a React component of project #5
+ */
 class UserDetail extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      user: null
+      user: null,
     };
   }
 
@@ -25,18 +28,14 @@ class UserDetail extends React.Component {
   loadUser() {
     const userId = this.props.match.params.userId;
 
-    FetchModel(`/user/${userId}`)
-      .then((res) => {
-        this.setState({ user: res.data });
-
-        if (this.props.setContext) {
-          this.props.setContext(
-            res.data.first_name + " " + res.data.last_name
-          );
-        }
+    fetchModel(`/user/${userId}`)
+      .then((response) => {
+        this.setState({
+          user: response.data,
+        });
       })
-      .catch((err) => {
-        console.error("Error fetching user:", err);
+      .catch((error) => {
+        console.error('Error fetching user:', error);
       });
   }
 
@@ -44,24 +43,28 @@ class UserDetail extends React.Component {
     const { user } = this.state;
 
     if (!user) {
-      return <Typography>Loading user...</Typography>;
+      return (
+        <Typography variant="body1">
+          Loading user details...
+        </Typography>
+      );
     }
 
     return (
-      <Paper style={{ margin: "20px", padding: "20px" }}>
-        <Typography variant="h4">
+      <div className="user-detail">
+        <Typography variant="h4" className="user-name">
           {user.first_name} {user.last_name}
         </Typography>
 
-        <Typography>
+        <Typography variant="body1" className="user-info">
           <strong>Location:</strong> {user.location}
         </Typography>
 
-        <Typography>
+        <Typography variant="body1" className="user-info">
           <strong>Occupation:</strong> {user.occupation}
         </Typography>
 
-        <Typography>
+        <Typography variant="body1" className="user-info">
           <strong>Description:</strong> {user.description}
         </Typography>
 
@@ -69,11 +72,11 @@ class UserDetail extends React.Component {
           variant="contained"
           component={Link}
           to={`/photos/${user._id}`}
-          style={{ marginTop: "20px" }}
+          className="photos-button"
         >
-          View {user.first_name}'s Photos
+          View Photos
         </Button>
-      </Paper>
+      </div>
     );
   }
 }
