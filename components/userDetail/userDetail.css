@@ -1,0 +1,16 @@
+.user-detail-card {
+    margin: 20px;
+    padding: 20px;
+  }
+  
+  .user-name {
+    margin-bottom: 15px;
+  }
+  
+  .user-field {
+    margin-bottom: 10px;
+  }
+  
+  .photo-button {
+    margin-top: 20px;
+  }
