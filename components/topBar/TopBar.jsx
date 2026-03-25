@@ -3,19 +3,13 @@ import { AppBar, Toolbar, Typography } from "@mui/material";
 import "./TopBar.css";
 import fetchModel from "../../lib/fetchModelData.js";
 
-/**
- * TopBar component
- * - Shows app name on the left
- * - Shows version from /test/info in the center-left area of the name
- * - Shows context (current view info) on the right
- */
 function TopBar({ context }) {
   const [version, setVersion] = useState("");
 
   useEffect(() => {
     fetchModel("/test/info").then((info) => {
-      if (info && info.__v !== undefined) {
-        setVersion(info.__v);
+      if (info && info.data && info.data.__v !== undefined) {
+        setVersion(info.data.__v);
       }
     });
   }, []);
@@ -23,15 +17,16 @@ function TopBar({ context }) {
   return (
     <AppBar className="topbar-appBar" position="absolute">
       <Toolbar className="topbar-toolbar">
-        {/* Left: App name + version */}
+        
+        {/* Left: App Title + Version */}
         <Typography variant="h5" className="topbar-name" color="inherit">
-          Aarav&nbsp;
+          Photo App Sprint&nbsp;
           <span className="topbar-version">
             {version !== "" ? `v${version}` : ""}
           </span>
         </Typography>
 
-        {/* Right: Context text */}
+        {/* Right: Context */}
         <Typography variant="h5" className="topbar-context" color="inherit">
           {context || ""}
         </Typography>

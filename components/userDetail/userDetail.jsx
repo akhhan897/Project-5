@@ -4,9 +4,6 @@ import { Typography, Button } from '@mui/material';
 import fetchModel from '../../lib/fetchModelData';
 import './userDetail.css';
 
-/**
- * Define UserDetail, a React component of project #5
- */
 class UserDetail extends React.Component {
   constructor(props) {
     super(props);
@@ -43,11 +40,7 @@ class UserDetail extends React.Component {
     const { user } = this.state;
 
     if (!user) {
-      return (
-        <Typography variant="body1">
-          Loading user details...
-        </Typography>
-      );
+      return <Typography variant="body1">Loading user details...</Typography>;
     }
 
     return (
