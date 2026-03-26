@@ -1,4 +1,4 @@
-# \Photo Sprint App\> Scrum Team
+# Photo Sprint App
 ---
 ## Scrum Team
 
