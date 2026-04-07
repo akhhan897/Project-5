@@ -1,15 +1,36 @@
 /*
 CSS for the project #5 main page
-
-Since CSS uses a global name space for classes we should use class names starting with
-main- here.
 */
 
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: Arial, sans-serif;
+  background-color: #f7f9fc;
+}
+
+#photoshareapp {
+  min-height: 100vh;
+  background-color: #f7f9fc;
+}
+
+/* Space below top bar */
 .main-topbar-buffer {
   margin-top: 70px;
 }
 
+/* Left + right grid items */
 .main-grid-item {
-  height: calc(100vh - 85px);
-  padding: 10px;
+  height: calc(100vh - 70px);
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+/* Right content area (THIS is the big fix) */
+.main-right-grid-item {
+  background-color: #f7f9fc;
+  min-height: calc(100vh - 70px);
+  padding: 24px;
+  box-sizing: border-box;
 }

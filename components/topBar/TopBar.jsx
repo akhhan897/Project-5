@@ -1,28 +1,38 @@
-import React from 'react';
-import {
-  AppBar, Toolbar, Typography
-} from '@mui/material';
-import './TopBar.css';
+import React, { useState, useEffect } from "react";
+import { AppBar, Toolbar, Typography } from "@mui/material";
+import "./TopBar.css";
+import fetchModel from "../../lib/fetchModelData.js";
 
-/**
- * Define TopBar, a React componment of project #5
- */
-class TopBar extends React.Component {
-  constructor(props) {
-    super(props);
-  }
+function TopBar({ context }) {
+  const [version, setVersion] = useState("");
 
-  render() {
-    return (
-      <AppBar className="topbar-appBar" position="absolute">
-        <Toolbar>
-          <Typography variant="h5" color="inherit">
-              This is the TopBar component
-          </Typography>
-        </Toolbar>
-      </AppBar>
-    );
-  }
+  useEffect(() => {
+    fetchModel("/test/info").then((info) => {
+      if (info && info.data && info.data.__v !== undefined) {
+        setVersion(info.data.__v);
+      }
+    });
+  }, []);
+
+  return (
+    <AppBar className="topbar-appBar" position="absolute">
+      <Toolbar className="topbar-toolbar">
+        
+        {/* Left: App Title + Version */}
+        <Typography variant="h5" className="topbar-name" color="inherit">
+          Photo App Sprint&nbsp;
+          <span className="topbar-version">
+            {version !== "" ? `v${version}` : ""}
+          </span>
+        </Typography>
+
+        {/* Right: Context */}
+        <Typography variant="h5" className="topbar-context" color="inherit">
+          {context || ""}
+        </Typography>
+      </Toolbar>
+    </AppBar>
+  );
 }
 
 export default TopBar;
