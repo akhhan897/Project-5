@@ -1,12 +1,12 @@
 .user-photos {
-  padding: 16px;
+  padding: 8px;
 }
 
 .photo-card {
   margin-bottom: 24px;
   padding: 16px;
   border: 1px solid #ddd;
-  border-radius: 8px;
+  border-radius: 10px;
   background-color: #fff;
 }
 
@@ -16,11 +16,11 @@
   height: auto;
   display: block;
   margin-bottom: 12px;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .photo-date {
-  margin-bottom: 12px;
+  margin-bottom: 12px !important;
   color: #666;
 }
 
@@ -31,8 +31,8 @@
 }
 
 .comments-title {
-  margin-bottom: 10px;
-  font-weight: 600;
+  margin-bottom: 10px !important;
+  font-weight: 600 !important;
 }
 
 .comment-card {
@@ -44,11 +44,16 @@
 
 .comment-date {
   color: #777;
-  margin-bottom: 4px;
+  margin-bottom: 4px !important;
 }
 
 .comment-user-link {
   text-decoration: none;
   font-weight: 600;
   margin-right: 4px;
+  color: #1976d2;
+}
+
+.comment-user-link:hover {
+  text-decoration: underline;
 }

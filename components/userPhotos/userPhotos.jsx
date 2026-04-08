@@ -1,17 +1,16 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Typography } from '@mui/material';
-import fetchModel from '../../lib/fetchModelData';
-import './userPhotos.css';
+import React from "react";
+import { Link } from "react-router-dom";
+import { Typography } from "@mui/material";
+import fetchModel from "../../lib/fetchModelData";
+import "./userPhotos.css";
 
-/**
- * Define UserPhotos, a React component of project #5
- */
 class UserPhotos extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       photos: [],
+      loading: true,
+      error: "",
     };
   }
 
@@ -28,19 +27,38 @@ class UserPhotos extends React.Component {
   loadPhotos() {
     const userId = this.props.match.params.userId;
 
+    this.setState({
+      photos: [],
+      loading: true,
+      error: "",
+    });
+
     fetchModel(`/photosOfUser/${userId}`)
       .then((response) => {
         this.setState({
-          photos: response.data,
+          photos: response.data || [],
+          loading: false,
         });
       })
       .catch((error) => {
-        console.error('Error fetching photos:', error);
+        console.error("Error fetching photos:", error);
+        this.setState({
+          loading: false,
+          error: "Unable to load photos.",
+        });
       });
   }
 
   render() {
-    const { photos } = this.state;
+    const { photos, loading, error } = this.state;
+
+    if (loading) {
+      return <Typography variant="body1">Loading photos...</Typography>;
+    }
+
+    if (error) {
+      return <Typography variant="body1">{error}</Typography>;
+    }
 
     return (
       <div className="user-photos">
@@ -69,12 +87,16 @@ class UserPhotos extends React.Component {
                     </Typography>
 
                     <Typography variant="body1" className="comment-text">
-                      <Link
-                        to={`/users/${comment.user._id}`}
-                        className="comment-user-link"
-                      >
-                        {comment.user.first_name} {comment.user.last_name}
-                      </Link>
+                      {comment.user ? (
+                        <Link
+                          to={`/users/${comment.user._id}`}
+                          className="comment-user-link"
+                        >
+                          {comment.user.first_name} {comment.user.last_name}
+                        </Link>
+                      ) : (
+                        <span className="comment-user-link">Unknown User</span>
+                      )}
                       : {comment.comment}
                     </Typography>
                   </div>
