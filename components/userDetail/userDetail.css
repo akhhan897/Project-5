@@ -1,0 +1,16 @@
+.user-detail {
+  padding: 20px;
+}
+
+.user-name {
+  margin-bottom: 16px !important;
+}
+
+.user-info {
+  margin-bottom: 12px !important;
+  line-height: 1.7;
+}
+
+.photos-button {
+  margin-top: 16px !important;
+}

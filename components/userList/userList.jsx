@@ -17,41 +17,66 @@ class UserList extends React.Component {
     super(props);
     this.state = {
       users: [],
+      loading: true,
+      error: "",
     };
   }
 
   componentDidMount() {
     fetchModel("/user/list")
       .then((result) => {
-        this.setState({ users: result.data });
+        this.setState({
+          users: result.data || [],
+          loading: false,
+          error: "",
+        });
       })
       .catch((err) => {
         console.error("Error fetching users:", err);
+        this.setState({
+          loading: false,
+          error: "Unable to load users.",
+        });
       });
   }
 
   render() {
-    const { users } = this.state;
+    const { users, loading, error } = this.state;
 
     return (
       <Paper elevation={3} className="user-list-container">
         <Typography variant="h6" className="user-list-title">
           Users
         </Typography>
-        <List component="nav" disablePadding>
-          {users.map((user) => (
-            <React.Fragment key={user._id}>
-              <ListItem disablePadding>
-                <ListItemButton component={Link} to={`/users/${user._id}`}>
-                  <ListItemText
-                    primary={`${user.first_name} ${user.last_name}`}
-                  />
-                </ListItemButton>
-              </ListItem>
-              <Divider />
-            </React.Fragment>
-          ))}
-        </List>
+
+        {loading && (
+          <Typography className="user-list-message">
+            Loading users...
+          </Typography>
+        )}
+
+        {!loading && error && (
+          <Typography className="user-list-message">
+            {error}
+          </Typography>
+        )}
+
+        {!loading && !error && (
+          <List component="nav" disablePadding>
+            {users.map((user) => (
+              <React.Fragment key={user._id}>
+                <ListItem disablePadding>
+                  <ListItemButton component={Link} to={`/users/${user._id}`}>
+                    <ListItemText
+                      primary={`${user.first_name} ${user.last_name}`}
+                    />
+                  </ListItemButton>
+                </ListItem>
+                <Divider />
+              </React.Fragment>
+            ))}
+          </List>
+        )}
       </Paper>
     );
   }
