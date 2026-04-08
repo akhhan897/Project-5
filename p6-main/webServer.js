@@ -181,26 +181,60 @@ app.get("/user/:id", function (request, response) {
 /**
  * URL /photosOfUser/:id - Returns the Photos for User (id).
  */
-app.get("/photosOfUser/:id", function (request, response) {
+app.get("/photosOfUser/:id", async function (request, response) {
   const id = request.params.id;
+
   if (!mongoose.Types.ObjectId.isValid(id)) {
     response.status(400).send("Bad user id");
     return;
   }
 
-  Photo.find({ user_id: id }, function (err, photos) {
-    if (err) {
-      console.error("Error fetching photos for user:", err);
-      response.status(500).send(JSON.stringify(err));
-      return;
-    }
-    if (photos.length === 0) {
-      console.log("Photos for user with _id:" + id + " not found.");
+  try {
+    const photos = await Photo.find({ user_id: id }).lean();
+
+    if (!photos || photos.length === 0) {
       response.status(400).send("Not found");
       return;
     }
-    response.status(200).json(photos);
-  });
+
+    const result = [];
+
+    for (const photo of photos) {
+      const newPhoto = {
+        _id: photo._id,
+        file_name: photo.file_name,
+        date_time: photo.date_time,
+        user_id: photo.user_id,
+        comments: [],
+      };
+
+      if (photo.comments && photo.comments.length > 0) {
+        for (const comment of photo.comments) {
+          const user = await User.findById(comment.user_id).lean();
+
+          const newComment = {
+            _id: comment._id,
+            comment: comment.comment,
+            date_time: comment.date_time,
+            user: {
+              _id: user._id,
+              first_name: user.first_name,
+              last_name: user.last_name,
+            },
+          };
+
+          newPhoto.comments.push(newComment);
+        }
+      }
+
+      result.push(newPhoto);
+    }
+
+    response.status(200).json(result);
+  } catch (err) {
+    console.error("Error fetching photos:", err);
+    response.status(500).send(JSON.stringify(err));
+  }
 });
 
 const server = app.listen(3000, function () {
