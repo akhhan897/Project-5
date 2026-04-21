@@ -11,7 +11,13 @@ class UserPhotos extends React.Component {
       photos: [],
       loading: true,
       error: "",
+      commentInputs: {},
+      postingComment: false,
     };
+
+    this.loadPhotos = this.loadPhotos.bind(this);
+    this.handleCommentChange = this.handleCommentChange.bind(this);
+    this.handleCommentSubmit = this.handleCommentSubmit.bind(this);
   }
 
   componentDidMount() {
@@ -49,8 +55,76 @@ class UserPhotos extends React.Component {
       });
   }
 
+  handleCommentChange(photoId, value) {
+    this.setState((prevState) => ({
+      commentInputs: {
+        ...prevState.commentInputs,
+        [photoId]: value,
+      },
+    }));
+  }
+
+  handleCommentSubmit(photoId) {
+    const commentText = this.state.commentInputs[photoId];
+
+    if (!commentText || commentText.trim() === "") {
+      alert("Comment cannot be empty.");
+      return;
+    }
+
+    if (!this.props.currentUser || !this.props.currentUser._id) {
+      alert("Current user not found. Make sure login/currentUser is set up.");
+      return;
+    }
+
+    this.setState({ postingComment: true });
+
+    fetch(`/commentsOfPhoto/${photoId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        comment: commentText.trim(),
+        user_id: this.props.currentUser._id,
+      }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          return response.text().then((text) => {
+            throw new Error(text || "Failed to post comment");
+          });
+        }
+        return response.json();
+      })
+      .then((newComment) => {
+        this.setState((prevState) => ({
+          photos: prevState.photos.map((photo) => {
+            if (photo._id === photoId) {
+              return {
+                ...photo,
+                comments: [...(photo.comments || []), newComment],
+              };
+            }
+            return photo;
+          }),
+          commentInputs: {
+            ...prevState.commentInputs,
+            [photoId]: "",
+          },
+          postingComment: false,
+        }));
+      })
+      .catch((error) => {
+        console.error("Error posting comment:", error);
+        this.setState({ postingComment: false });
+        alert("Failed to post comment.");
+      });
+  }
+
   render() {
-    const { photos, loading, error } = this.state;
+    const { photos, loading, error, commentInputs, postingComment } =
+      this.state;
 
     if (loading) {
       return <Typography variant="body1">Loading photos...</Typography>;
@@ -71,7 +145,7 @@ class UserPhotos extends React.Component {
             />
 
             <Typography variant="body2" className="photo-date">
-              {photo.date_time}
+              {new Date(photo.date_time).toLocaleString()}
             </Typography>
 
             <div className="photo-comments">
@@ -83,7 +157,7 @@ class UserPhotos extends React.Component {
                 photo.comments.map((comment) => (
                   <div key={comment._id} className="comment-card">
                     <Typography variant="body2" className="comment-date">
-                      {comment.date_time}
+                      {new Date(comment.date_time).toLocaleString()}
                     </Typography>
 
                     <Typography variant="body1" className="comment-text">
@@ -104,6 +178,24 @@ class UserPhotos extends React.Component {
               ) : (
                 <Typography variant="body2">No comments</Typography>
               )}
+
+              <div className="comment-section">
+                <textarea
+                  className="comment-input"
+                  placeholder="Write a comment..."
+                  value={commentInputs[photo._id] || ""}
+                  onChange={(e) =>
+                    this.handleCommentChange(photo._id, e.target.value)
+                  }
+                />
+                <button
+                  className="comment-button"
+                  onClick={() => this.handleCommentSubmit(photo._id)}
+                  disabled={postingComment}
+                >
+                  {postingComment ? "Posting..." : "Post Comment"}
+                </button>
+              </div>
             </div>
           </div>
         ))}
