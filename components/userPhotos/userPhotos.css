@@ -57,3 +57,42 @@
 .comment-user-link:hover {
   text-decoration: underline;
 }
+
+.comment-section {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.comment-input {
+  width: 100%;
+  min-height: 70px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 14px;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+}
+
+.comment-button {
+  width: fit-content;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  background-color: #1976d2;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.comment-button:hover {
+  background-color: #125ea7;
+}
+
+.comment-button:disabled {
+  background-color: #9bbfe5;
+  cursor: not-allowed;
+}

@@ -42,6 +42,9 @@ const session = require("express-session");
 const multer = require("multer");
 const app = express();
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 const User = require("./schema/user.js");
 const Photo = require("./schema/photo.js");
 const SchemaInfo = require("./schema/schemaInfo.js");
@@ -277,11 +280,13 @@ app.get("/photosOfUser/:id", isAuthenticated, async function (request, response)
               _id: comment._id,
               comment: comment.comment,
               date_time: comment.date_time,
-              user: {
-                _id: commentUser._id,
-                first_name: commentUser.first_name,
-                last_name: commentUser.last_name,
-              },
+              user: commentUser
+                ? {
+                    _id: commentUser._id,
+                    first_name: commentUser.first_name,
+                    last_name: commentUser.last_name,
+                  }
+                : null,
             };
           })
         );
@@ -299,6 +304,66 @@ app.get("/photosOfUser/:id", isAuthenticated, async function (request, response)
     response.status(200).json(result);
   } catch (err) {
     console.error("Error fetching photos of user:", err);
+    response.status(500).send(JSON.stringify(err));
+  }
+});
+
+app.post("/commentsOfPhoto/:photo_id", async function (request, response) {
+  const photoId = request.params.photo_id;
+  const commentText = request.body.comment;
+  const userId = request.body.user_id;
+
+  if (!mongoose.Types.ObjectId.isValid(photoId)) {
+    response.status(400).send("Bad photo id");
+    return;
+  }
+
+  if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+    response.status(400).send("Bad user id");
+    return;
+  }
+
+  if (!commentText || commentText.trim() === "") {
+    response.status(400).send("Comment cannot be empty");
+    return;
+  }
+
+  try {
+    const photo = await Photo.findById(photoId);
+    if (!photo) {
+      response.status(404).send("Photo not found");
+      return;
+    }
+
+    const user = await User.findById(userId).lean();
+    if (!user) {
+      response.status(404).send("User not found");
+      return;
+    }
+
+    const newComment = {
+      comment: commentText.trim(),
+      date_time: new Date(),
+      user_id: userId,
+    };
+
+    photo.comments.push(newComment);
+    await photo.save();
+
+    const savedComment = photo.comments[photo.comments.length - 1];
+
+    response.status(200).json({
+      _id: savedComment._id,
+      comment: savedComment.comment,
+      date_time: savedComment.date_time,
+      user: {
+        _id: user._id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+      },
+    });
+  } catch (err) {
+    console.error("Error posting comment:", err);
     response.status(500).send(JSON.stringify(err));
   }
 });
