@@ -35,8 +35,11 @@ const mongoose = require("mongoose");
 mongoose.Promise = require("bluebird");
 
 const async = require("async");
+const bodyParser = require("body-parser");
 
 const express = require("express");
+const session = require("express-session");
+const multer = require("multer");
 const app = express();
 
 const User = require("./schema/user.js");
@@ -50,7 +53,65 @@ mongoose.connect("mongodb://127.0.0.1/project6", {
   useUnifiedTopology: true,
 });
 
+const upload = multer({ storage: multer.memoryStorage() });
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "photo-share-session-secret",
+    resave: false,
+    saveUninitialized: false,
+  })
+);
+app.use(async function (request, response, next) {
+  if (!request.session || !request.session.userId) {
+    request.user = null;
+    next();
+    return;
+  }
+
+  try {
+    const user = await User.findById(request.session.userId);
+
+    if (!user) {
+      request.session.userId = undefined;
+      request.user = null;
+      next();
+      return;
+    }
+
+    request.user = user;
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
 app.use(express.static(__dirname));
+
+function filterUser(user) {
+  const userObj = user.toObject ? user.toObject() : user;
+
+  return {
+    _id: userObj._id,
+    first_name: userObj.first_name,
+    last_name: userObj.last_name,
+    location: userObj.location,
+    description: userObj.description,
+    occupation: userObj.occupation,
+    login_name: userObj.login_name,
+  };
+}
+
+function isAuthenticated(request, response, next) {
+  if (!request.session || !request.session.userId) {
+    response.status(401).send("Unauthorized");
+    return;
+  }
+
+  next();
+}
 
 app.get("/", function (request, response) {
   response.send("Simple web server of files from " + __dirname);
@@ -107,7 +168,51 @@ app.get("/test/:p1", function (request, response) {
   }
 });
 
-app.get("/user/list", function (request, response) {
+app.post("/admin/login", upload.none(), function (request, response) {
+  const loginName = request.body && request.body.login_name;
+  const password = request.body && request.body.password;
+
+  if (!loginName || !password) {
+    response.status(400).send("Missing login credentials");
+    return;
+  }
+
+  User.findOne({ login_name: loginName }, function (err, user) {
+    if (err) {
+      console.error("Error during login:", err);
+      response.status(500).send(JSON.stringify(err));
+      return;
+    }
+
+    if (!user || user.password !== password) {
+      response.status(400).send("Invalid login credentials");
+      return;
+    }
+
+    request.session.userId = user._id;
+    response.status(200).json(filterUser(user));
+  });
+});
+
+app.post("/admin/logout", function (request, response) {
+  if (!request.session) {
+    response.status(200).json({ message: "Logged out" });
+    return;
+  }
+
+  request.session.destroy(function (err) {
+    if (err) {
+      console.error("Error during logout:", err);
+      response.status(500).send(JSON.stringify(err));
+      return;
+    }
+
+    response.clearCookie("connect.sid");
+    response.status(200).json({ message: "Logged out" });
+  });
+});
+
+app.get("/user/list", isAuthenticated, function (request, response) {
   User.find({}, "_id first_name last_name", function (err, users) {
     if (err) {
       console.error("Error fetching user list:", err);
@@ -118,7 +223,7 @@ app.get("/user/list", function (request, response) {
   });
 });
 
-app.get("/user/:id", function (request, response) {
+app.get("/user/:id", isAuthenticated, function (request, response) {
   const id = request.params.id;
   if (!mongoose.Types.ObjectId.isValid(id)) {
     response.status(400).send("Bad user id");
@@ -144,7 +249,7 @@ app.get("/user/:id", function (request, response) {
   );
 });
 
-app.get("/photosOfUser/:id", async function (request, response) {
+app.get("/photosOfUser/:id", isAuthenticated, async function (request, response) {
   const id = request.params.id;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {

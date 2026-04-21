@@ -43,6 +43,8 @@ async function loadDatabase() {
           location: user.location,
           description: user.description,
           occupation: user.occupation,
+          login_name: user.last_name.toLowerCase(),
+          password: "weak",
         });
 
         mapFakeId2RealId[user._id] = userObj._id;
