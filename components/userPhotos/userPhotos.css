@@ -1,12 +1,51 @@
 .user-photos {
-  padding: 16px;
+  padding: 8px;
+}
+
+.photo-upload-form {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.photo-upload-input {
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.photo-upload-button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  background-color: #1976d2;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.photo-upload-button:hover {
+  background-color: #125ea7;
+}
+
+.photo-upload-button:disabled {
+  background-color: #9bbfe5;
+  cursor: not-allowed;
+}
+
+.photo-upload-error {
+  flex-basis: 100%;
+  color: #b00020;
 }
 
 .photo-card {
   margin-bottom: 24px;
   padding: 16px;
   border: 1px solid #ddd;
-  border-radius: 8px;
+  border-radius: 10px;
   background-color: #fff;
 }
 
@@ -16,11 +55,11 @@
   height: auto;
   display: block;
   margin-bottom: 12px;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .photo-date {
-  margin-bottom: 12px;
+  margin-bottom: 12px !important;
   color: #666;
 }
 
@@ -31,8 +70,8 @@
 }
 
 .comments-title {
-  margin-bottom: 10px;
-  font-weight: 600;
+  margin-bottom: 10px !important;
+  font-weight: 600 !important;
 }
 
 .comment-card {
@@ -44,11 +83,55 @@
 
 .comment-date {
   color: #777;
-  margin-bottom: 4px;
+  margin-bottom: 4px !important;
 }
 
 .comment-user-link {
   text-decoration: none;
   font-weight: 600;
   margin-right: 4px;
+  color: #1976d2;
+}
+
+.comment-user-link:hover {
+  text-decoration: underline;
+}
+
+.comment-section {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.comment-input {
+  width: 100%;
+  min-height: 70px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 14px;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+}
+
+.comment-button {
+  width: fit-content;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  background-color: #1976d2;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.comment-button:hover {
+  background-color: #125ea7;
+}
+
+.comment-button:disabled {
+  background-color: #9bbfe5;
+  cursor: not-allowed;
 }

@@ -1,0 +1,48 @@
+.login-register-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding-top: 16px;
+}
+
+.login-register-card {
+  padding: 24px;
+}
+
+.login-register-intro {
+  margin-bottom: 16px;
+}
+
+.login-register-divider {
+  margin: 32px 0;
+}
+.login-register-container {
+  max-width: 500px;
+  margin: 30px auto;
+  padding: 24px;
+}
+
+.login-register-title {
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.login-register-subtitle {
+  margin-bottom: 20px;
+  text-align: center;
+  color: #555;
+}
+
+.login-register-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-register-error {
+  color: #d32f2f;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.login-register-button {
+  margin-top: 16px;
+}

@@ -1,11 +1,8 @@
-/*
-CSS for the project #5 main page
-*/
-
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
-  height: 100%;
+  min-height: 100%;
   font-family: Arial, sans-serif;
   background-color: #f7f9fc;
 }
@@ -15,22 +12,26 @@ html, body {
   background-color: #f7f9fc;
 }
 
-/* Space below top bar */
 .main-topbar-buffer {
-  margin-top: 70px;
+  height: 72px;
 }
 
-/* Left + right grid items */
+.main-grid-container {
+  margin: 0 !important;
+  padding: 16px;
+  width: 100% !important;
+}
+
 .main-grid-item {
-  height: calc(100vh - 70px);
+  min-height: calc(100vh - 104px);
   padding: 16px;
   box-sizing: border-box;
 }
 
-/* Right content area (THIS is the big fix) */
 .main-right-grid-item {
   background-color: #f7f9fc;
-  min-height: calc(100vh - 70px);
-  padding: 24px;
-  box-sizing: border-box;
+}
+
+.home-welcome {
+  padding: 12px;
 }

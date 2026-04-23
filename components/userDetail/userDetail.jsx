@@ -1,14 +1,16 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Typography, Button } from '@mui/material';
-import fetchModel from '../../lib/fetchModelData';
-import './userDetail.css';
+import React from "react";
+import { Link } from "react-router-dom";
+import { Typography, Button } from "@mui/material";
+import fetchModel from "../../lib/fetchModelData";
+import "./userDetail.css";
 
 class UserDetail extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       user: null,
+      loading: true,
+      error: "",
     };
   }
 
@@ -25,22 +27,41 @@ class UserDetail extends React.Component {
   loadUser() {
     const userId = this.props.match.params.userId;
 
+    this.setState({
+      loading: true,
+      error: "",
+      user: null,
+    });
+
     fetchModel(`/user/${userId}`)
       .then((response) => {
         this.setState({
           user: response.data,
+          loading: false,
         });
       })
       .catch((error) => {
-        console.error('Error fetching user:', error);
+        console.error("Error fetching user:", error);
+        this.setState({
+          loading: false,
+          error: "Unable to load user details.",
+        });
       });
   }
 
   render() {
-    const { user } = this.state;
+    const { user, loading, error } = this.state;
+
+    if (loading) {
+      return <Typography variant="body1">Loading user details...</Typography>;
+    }
+
+    if (error) {
+      return <Typography variant="body1">{error}</Typography>;
+    }
 
     if (!user) {
-      return <Typography variant="body1">Loading user details...</Typography>;
+      return <Typography variant="body1">User not found.</Typography>;
     }
 
     return (
