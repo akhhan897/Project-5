@@ -1,0 +1,17 @@
+.login-register-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding-top: 16px;
+}
+
+.login-register-card {
+  padding: 24px;
+}
+
+.login-register-intro {
+  margin-bottom: 16px;
+}
+
+.login-register-divider {
+  margin: 32px 0;
+}
