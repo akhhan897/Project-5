@@ -36,12 +36,16 @@ mongoose.Promise = require("bluebird");
 
 const async = require("async");
 const bodyParser = require("body-parser");
+const fs = require("fs");
 const path = require("path");
 
 const express = require("express");
 const session = require("express-session");
 const multer = require("multer");
 const app = express();
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 const User = require("./schema/user.js");
 const Photo = require("./schema/photo.js");
@@ -54,7 +58,34 @@ mongoose.connect("mongodb://127.0.0.1/project6", {
   useUnifiedTopology: true,
 });
 
-const upload = multer({ storage: multer.memoryStorage() });
+const imagesDir = path.join(__dirname, "images");
+fs.mkdirSync(imagesDir, { recursive: true });
+
+function cleanFileName(fileName) {
+  const baseName = path.basename(fileName || "upload");
+  return baseName.replace(/[^a-zA-Z0-9._-]/g, "_") || "upload";
+}
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: function (request, file, callback) {
+      callback(null, imagesDir);
+    },
+    filename: function (request, file, callback) {
+      callback(null, Date.now() + "-" + cleanFileName(file.originalname));
+    },
+  }),
+  fileFilter: function (request, file, callback) {
+    if (!file.mimetype || !file.mimetype.startsWith("image/")) {
+      callback(new Error("Only image uploads are allowed"));
+      return;
+    }
+    callback(null, true);
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024,
+  },
+});
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -347,11 +378,13 @@ app.get("/photosOfUser/:id", isAuthenticated, async function (request, response)
               _id: comment._id,
               comment: comment.comment,
               date_time: comment.date_time,
-              user: {
-                _id: commentUser._id,
-                first_name: commentUser.first_name,
-                last_name: commentUser.last_name,
-              },
+              user: commentUser
+                ? {
+                    _id: commentUser._id,
+                    first_name: commentUser.first_name,
+                    last_name: commentUser.last_name,
+                  }
+                : null,
             };
           })
         );
@@ -389,6 +422,15 @@ app.post(
 
     if (!commentText) {
       response.status(400).json({ message: "Comment cannot be empty" });
+app.post("/photos/new", isAuthenticated, function (request, response) {
+  upload.single("uploadedphoto")(request, response, async function (err) {
+    if (err) {
+      response.status(400).send(err.message || "Photo upload failed");
+      return;
+    }
+
+    if (!request.file) {
+      response.status(400).send("Missing uploaded photo");
       return;
     }
 
@@ -427,6 +469,85 @@ app.post(
     }
   }
 );
+      const photo = await Photo.create({
+        file_name: request.file.filename,
+        date_time: new Date(),
+        user_id: request.session.userId,
+        comments: [],
+      });
+
+      response.status(200).json(photo);
+    } catch (saveErr) {
+      fs.unlink(request.file.path, function (unlinkErr) {
+        if (unlinkErr) {
+          console.error("Error removing failed upload:", unlinkErr);
+        }
+      });
+      console.error("Error saving uploaded photo:", saveErr);
+      response.status(500).send(JSON.stringify(saveErr));
+    }
+  });
+});
+
+app.post("/commentsOfPhoto/:photo_id", async function (request, response) {
+  const photoId = request.params.photo_id;
+  const commentText = request.body.comment;
+  const userId = request.body.user_id;
+
+  if (!mongoose.Types.ObjectId.isValid(photoId)) {
+    response.status(400).send("Bad photo id");
+    return;
+  }
+
+  if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+    response.status(400).send("Bad user id");
+    return;
+  }
+
+  if (!commentText || commentText.trim() === "") {
+    response.status(400).send("Comment cannot be empty");
+    return;
+  }
+
+  try {
+    const photo = await Photo.findById(photoId);
+    if (!photo) {
+      response.status(404).send("Photo not found");
+      return;
+    }
+
+    const user = await User.findById(userId).lean();
+    if (!user) {
+      response.status(404).send("User not found");
+      return;
+    }
+
+    const newComment = {
+      comment: commentText.trim(),
+      date_time: new Date(),
+      user_id: userId,
+    };
+
+    photo.comments.push(newComment);
+    await photo.save();
+
+    const savedComment = photo.comments[photo.comments.length - 1];
+
+    response.status(200).json({
+      _id: savedComment._id,
+      comment: savedComment.comment,
+      date_time: savedComment.date_time,
+      user: {
+        _id: user._id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+      },
+    });
+  } catch (err) {
+    console.error("Error posting comment:", err);
+    response.status(500).send(JSON.stringify(err));
+  }
+});
 
 const server = app.listen(3000, function () {
   const port = server.address().port;

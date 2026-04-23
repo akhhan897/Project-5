@@ -18,6 +18,18 @@ class UserPhotos extends React.Component {
 
     this.handleCommentChange = this.handleCommentChange.bind(this);
     this.handleAddComment = this.handleAddComment.bind(this);
+      postingComment: false,
+      selectedPhotoFile: null,
+      uploadingPhoto: false,
+      uploadError: "",
+    };
+
+    this.fileInputRef = React.createRef();
+    this.loadPhotos = this.loadPhotos.bind(this);
+    this.handleCommentChange = this.handleCommentChange.bind(this);
+    this.handleCommentSubmit = this.handleCommentSubmit.bind(this);
+    this.handlePhotoFileChange = this.handlePhotoFileChange.bind(this);
+    this.handlePhotoUpload = this.handlePhotoUpload.bind(this);
   }
 
   componentDidMount() {
@@ -147,6 +159,124 @@ class UserPhotos extends React.Component {
         },
       }));
     }
+    }));
+  }
+
+  handleCommentSubmit(photoId) {
+    const commentText = this.state.commentInputs[photoId];
+
+    if (!commentText || commentText.trim() === "") {
+      alert("Comment cannot be empty.");
+      return;
+    }
+
+    if (!this.props.currentUser || !this.props.currentUser._id) {
+      alert("Current user not found. Make sure login/currentUser is set up.");
+      return;
+    }
+
+    this.setState({ postingComment: true });
+
+    fetch(`/commentsOfPhoto/${photoId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        comment: commentText.trim(),
+        user_id: this.props.currentUser._id,
+      }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          return response.text().then((text) => {
+            throw new Error(text || "Failed to post comment");
+          });
+        }
+        return response.json();
+      })
+      .then((newComment) => {
+        this.setState((prevState) => ({
+          photos: prevState.photos.map((photo) => {
+            if (photo._id === photoId) {
+              return {
+                ...photo,
+                comments: [...(photo.comments || []), newComment],
+              };
+            }
+            return photo;
+          }),
+          commentInputs: {
+            ...prevState.commentInputs,
+            [photoId]: "",
+          },
+          postingComment: false,
+        }));
+      })
+      .catch((error) => {
+        console.error("Error posting comment:", error);
+        this.setState({ postingComment: false });
+        alert("Failed to post comment.");
+      });
+  }
+
+  handlePhotoFileChange(event) {
+    this.setState({
+      selectedPhotoFile: event.target.files[0] || null,
+      uploadError: "",
+    });
+  }
+
+  handlePhotoUpload(event) {
+    event.preventDefault();
+
+    const { selectedPhotoFile } = this.state;
+
+    if (!selectedPhotoFile) {
+      this.setState({ uploadError: "Please choose a photo to upload." });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("uploadedphoto", selectedPhotoFile);
+
+    this.setState({
+      uploadingPhoto: true,
+      uploadError: "",
+    });
+
+    fetch("/photos/new", {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => {
+        if (!response.ok) {
+          return response.text().then((text) => {
+            throw new Error(text || "Failed to upload photo");
+          });
+        }
+        return response.json();
+      })
+      .then(() => {
+        if (this.fileInputRef.current) {
+          this.fileInputRef.current.value = "";
+        }
+
+        this.setState(
+          {
+            selectedPhotoFile: null,
+            uploadingPhoto: false,
+          },
+          this.loadPhotos
+        );
+      })
+      .catch((error) => {
+        console.error("Error uploading photo:", error);
+        this.setState({
+          uploadingPhoto: false,
+          uploadError: error.message || "Failed to upload photo.",
+        });
+      });
   }
 
   render() {
@@ -157,6 +287,10 @@ class UserPhotos extends React.Component {
       commentInputs,
       commentErrors,
       submittingComments,
+      postingComment,
+      selectedPhotoFile,
+      uploadingPhoto,
+      uploadError,
     } = this.state;
 
     if (loading) {
@@ -169,6 +303,28 @@ class UserPhotos extends React.Component {
 
     return (
       <div className="user-photos">
+        <form className="photo-upload-form" onSubmit={this.handlePhotoUpload}>
+          <input
+            ref={this.fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={this.handlePhotoFileChange}
+            className="photo-upload-input"
+          />
+          <button
+            type="submit"
+            className="photo-upload-button"
+            disabled={!selectedPhotoFile || uploadingPhoto}
+          >
+            {uploadingPhoto ? "Uploading..." : "Upload Photo"}
+          </button>
+          {uploadError && (
+            <Typography variant="body2" className="photo-upload-error">
+              {uploadError}
+            </Typography>
+          )}
+        </form>
+
         {photos.map((photo) => (
           <div key={photo._id} className="photo-card">
             <img
@@ -178,7 +334,7 @@ class UserPhotos extends React.Component {
             />
 
             <Typography variant="body2" className="photo-date">
-              {photo.date_time}
+              {new Date(photo.date_time).toLocaleString()}
             </Typography>
 
             <div className="photo-comments">
@@ -190,7 +346,7 @@ class UserPhotos extends React.Component {
                 photo.comments.map((comment) => (
                   <div key={comment._id} className="comment-card">
                     <Typography variant="body2" className="comment-date">
-                      {comment.date_time}
+                      {new Date(comment.date_time).toLocaleString()}
                     </Typography>
 
                     <Typography variant="body1" className="comment-text">
@@ -211,6 +367,24 @@ class UserPhotos extends React.Component {
               ) : (
                 <Typography variant="body2">No comments</Typography>
               )}
+
+              <div className="comment-section">
+                <textarea
+                  className="comment-input"
+                  placeholder="Write a comment..."
+                  value={commentInputs[photo._id] || ""}
+                  onChange={(e) =>
+                    this.handleCommentChange(photo._id, e.target.value)
+                  }
+                />
+                <button
+                  className="comment-button"
+                  onClick={() => this.handleCommentSubmit(photo._id)}
+                  disabled={postingComment}
+                >
+                  {postingComment ? "Posting..." : "Post Comment"}
+                </button>
+              </div>
             </div>
 
             <TextField
