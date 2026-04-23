@@ -36,16 +36,12 @@ mongoose.Promise = require("bluebird");
 
 const async = require("async");
 const bodyParser = require("body-parser");
-const fs = require("fs");
 const path = require("path");
 
 const express = require("express");
 const session = require("express-session");
 const multer = require("multer");
 const app = express();
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 const User = require("./schema/user.js");
 const Photo = require("./schema/photo.js");
@@ -58,34 +54,7 @@ mongoose.connect("mongodb://127.0.0.1/project6", {
   useUnifiedTopology: true,
 });
 
-const imagesDir = path.join(__dirname, "images");
-fs.mkdirSync(imagesDir, { recursive: true });
-
-function cleanFileName(fileName) {
-  const baseName = path.basename(fileName || "upload");
-  return baseName.replace(/[^a-zA-Z0-9._-]/g, "_") || "upload";
-}
-
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: function (request, file, callback) {
-      callback(null, imagesDir);
-    },
-    filename: function (request, file, callback) {
-      callback(null, Date.now() + "-" + cleanFileName(file.originalname));
-    },
-  }),
-  fileFilter: function (request, file, callback) {
-    if (!file.mimetype || !file.mimetype.startsWith("image/")) {
-      callback(new Error("Only image uploads are allowed"));
-      return;
-    }
-    callback(null, true);
-  },
-  limits: {
-    fileSize: 10 * 1024 * 1024,
-  },
-});
+const upload = multer({ storage: multer.memoryStorage() });
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -120,6 +89,7 @@ app.use(async function (request, response, next) {
   }
 });
 
+app.use("/images", express.static(path.join(__dirname, "images")));
 app.use(express.static(__dirname));
 
 function filterUser(user) {
@@ -200,6 +170,65 @@ app.get("/test/:p1", function (request, response) {
   }
 });
 
+app.post("/user", async function (request, response) {
+  const {
+    login_name: loginName,
+    password,
+    first_name: firstName,
+    last_name: lastName,
+    location,
+    description,
+    occupation,
+  } = request.body || {};
+
+  if (!loginName) {
+    response.status(400).json({ message: "login_name is required" });
+    return;
+  }
+
+  if (!password) {
+    response.status(400).json({ message: "password is required" });
+    return;
+  }
+
+  if (!firstName) {
+    response.status(400).json({ message: "first_name is required" });
+    return;
+  }
+
+  if (!lastName) {
+    response.status(400).json({ message: "last_name is required" });
+    return;
+  }
+
+  try {
+    const existingUser = await User.findOne({ login_name: loginName });
+
+    if (existingUser) {
+      response.status(400).json({ message: "login_name already exists" });
+      return;
+    }
+
+    const newUser = await User.create({
+      login_name: loginName,
+      password,
+      first_name: firstName,
+      last_name: lastName,
+      location,
+      description,
+      occupation,
+    });
+
+    response.status(201).json({
+      message: "User registered successfully",
+      user: filterUser(newUser),
+    });
+  } catch (err) {
+    console.error("Error creating user:", err);
+    response.status(500).json({ message: "Internal server error" });
+  }
+});
+
 app.post("/admin/login", upload.none(), function (request, response) {
   const loginName = request.body && request.body.login_name;
   const password = request.body && request.body.password;
@@ -224,6 +253,15 @@ app.post("/admin/login", upload.none(), function (request, response) {
     request.session.userId = user._id;
     response.status(200).json(filterUser(user));
   });
+});
+
+app.get("/admin/current", function (request, response) {
+  if (!request.user) {
+    response.status(401).send("Unauthorized");
+    return;
+  }
+
+  response.status(200).json(filterUser(request.user));
 });
 
 app.post("/admin/logout", function (request, response) {
@@ -309,13 +347,11 @@ app.get("/photosOfUser/:id", isAuthenticated, async function (request, response)
               _id: comment._id,
               comment: comment.comment,
               date_time: comment.date_time,
-              user: commentUser
-                ? {
-                    _id: commentUser._id,
-                    first_name: commentUser.first_name,
-                    last_name: commentUser.last_name,
-                  }
-                : null,
+              user: {
+                _id: commentUser._id,
+                first_name: commentUser.first_name,
+                last_name: commentUser.last_name,
+              },
             };
           })
         );
@@ -337,98 +373,60 @@ app.get("/photosOfUser/:id", isAuthenticated, async function (request, response)
   }
 });
 
-app.post("/photos/new", isAuthenticated, function (request, response) {
-  upload.single("uploadedphoto")(request, response, async function (err) {
-    if (err) {
-      response.status(400).send(err.message || "Photo upload failed");
+app.post(
+  "/commentsOfPhoto/:photo_id",
+  isAuthenticated,
+  async function (request, response) {
+    const photoId = request.params.photo_id;
+    const commentText = request.body && request.body.comment
+      ? request.body.comment.trim()
+      : "";
+
+    if (!mongoose.Types.ObjectId.isValid(photoId)) {
+      response.status(400).send("Bad photo id");
       return;
     }
 
-    if (!request.file) {
-      response.status(400).send("Missing uploaded photo");
+    if (!commentText) {
+      response.status(400).json({ message: "Comment cannot be empty" });
       return;
     }
 
     try {
-      const photo = await Photo.create({
-        file_name: request.file.filename,
+      const photo = await Photo.findById(photoId);
+
+      if (!photo) {
+        response.status(400).send("Photo not found");
+        return;
+      }
+
+      const newComment = {
+        comment: commentText,
         date_time: new Date(),
         user_id: request.session.userId,
-        comments: [],
+      };
+
+      photo.comments.push(newComment);
+      await photo.save();
+
+      const savedComment = photo.comments[photo.comments.length - 1];
+
+      response.status(201).json({
+        _id: savedComment._id,
+        comment: savedComment.comment,
+        date_time: savedComment.date_time,
+        user: {
+          _id: request.user._id,
+          first_name: request.user.first_name,
+          last_name: request.user.last_name,
+        },
       });
-
-      response.status(200).json(photo);
-    } catch (saveErr) {
-      fs.unlink(request.file.path, function (unlinkErr) {
-        if (unlinkErr) {
-          console.error("Error removing failed upload:", unlinkErr);
-        }
-      });
-      console.error("Error saving uploaded photo:", saveErr);
-      response.status(500).send(JSON.stringify(saveErr));
+    } catch (err) {
+      console.error("Error adding comment to photo:", err);
+      response.status(500).send(JSON.stringify(err));
     }
-  });
-});
-
-app.post("/commentsOfPhoto/:photo_id", async function (request, response) {
-  const photoId = request.params.photo_id;
-  const commentText = request.body.comment;
-  const userId = request.body.user_id;
-
-  if (!mongoose.Types.ObjectId.isValid(photoId)) {
-    response.status(400).send("Bad photo id");
-    return;
   }
-
-  if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
-    response.status(400).send("Bad user id");
-    return;
-  }
-
-  if (!commentText || commentText.trim() === "") {
-    response.status(400).send("Comment cannot be empty");
-    return;
-  }
-
-  try {
-    const photo = await Photo.findById(photoId);
-    if (!photo) {
-      response.status(404).send("Photo not found");
-      return;
-    }
-
-    const user = await User.findById(userId).lean();
-    if (!user) {
-      response.status(404).send("User not found");
-      return;
-    }
-
-    const newComment = {
-      comment: commentText.trim(),
-      date_time: new Date(),
-      user_id: userId,
-    };
-
-    photo.comments.push(newComment);
-    await photo.save();
-
-    const savedComment = photo.comments[photo.comments.length - 1];
-
-    response.status(200).json({
-      _id: savedComment._id,
-      comment: savedComment.comment,
-      date_time: savedComment.date_time,
-      user: {
-        _id: user._id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-      },
-    });
-  } catch (err) {
-    console.error("Error posting comment:", err);
-    response.status(500).send(JSON.stringify(err));
-  }
-});
+);
 
 const server = app.listen(3000, function () {
   const port = server.address().port;
