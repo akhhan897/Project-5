@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Typography } from "@mui/material";
+import { Typography, Button, TextField } from "@mui/material";
 import fetchModel from "../../lib/fetchModelData";
 import "./userPhotos.css";
 
@@ -12,6 +12,12 @@ class UserPhotos extends React.Component {
       loading: true,
       error: "",
       commentInputs: {},
+      commentErrors: {},
+      submittingComments: {},
+    };
+
+    this.handleCommentChange = this.handleCommentChange.bind(this);
+    this.handleAddComment = this.handleAddComment.bind(this);
       postingComment: false,
       selectedPhotoFile: null,
       uploadingPhoto: false,
@@ -43,6 +49,9 @@ class UserPhotos extends React.Component {
       photos: [],
       loading: true,
       error: "",
+      commentInputs: {},
+      commentErrors: {},
+      submittingComments: {},
     });
 
     fetchModel(`/photosOfUser/${userId}`)
@@ -67,6 +76,89 @@ class UserPhotos extends React.Component {
         ...prevState.commentInputs,
         [photoId]: value,
       },
+      commentErrors: {
+        ...prevState.commentErrors,
+        [photoId]: "",
+      },
+    }));
+  }
+
+  async handleAddComment(photoId) {
+    const commentText = (this.state.commentInputs[photoId] || "").trim();
+
+    if (!commentText) {
+      this.setState((prevState) => ({
+        commentErrors: {
+          ...prevState.commentErrors,
+          [photoId]: "Comment cannot be empty.",
+        },
+      }));
+      return;
+    }
+
+    this.setState((prevState) => ({
+      commentErrors: {
+        ...prevState.commentErrors,
+        [photoId]: "",
+      },
+      submittingComments: {
+        ...prevState.submittingComments,
+        [photoId]: true,
+      },
+    }));
+
+    try {
+      const response = await fetch(`/commentsOfPhoto/${photoId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ comment: commentText }),
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(
+          (data && data.message) || "Unable to add comment."
+        );
+      }
+
+      this.setState((prevState) => ({
+        photos: prevState.photos.map((photo) =>
+          photo._id === photoId
+            ? {
+                ...photo,
+                comments: [...(photo.comments || []), data],
+              }
+            : photo
+        ),
+        commentInputs: {
+          ...prevState.commentInputs,
+          [photoId]: "",
+        },
+        commentErrors: {
+          ...prevState.commentErrors,
+          [photoId]: "",
+        },
+        submittingComments: {
+          ...prevState.submittingComments,
+          [photoId]: false,
+        },
+      }));
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      this.setState((prevState) => ({
+        commentErrors: {
+          ...prevState.commentErrors,
+          [photoId]: error.message || "Unable to add comment.",
+        },
+        submittingComments: {
+          ...prevState.submittingComments,
+          [photoId]: false,
+        },
+      }));
+    }
     }));
   }
 
@@ -193,6 +285,8 @@ class UserPhotos extends React.Component {
       loading,
       error,
       commentInputs,
+      commentErrors,
+      submittingComments,
       postingComment,
       selectedPhotoFile,
       uploadingPhoto,
@@ -292,6 +386,26 @@ class UserPhotos extends React.Component {
                 </button>
               </div>
             </div>
+
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Add a comment"
+              value={commentInputs[photo._id] || ""}
+              onChange={(event) =>
+                this.handleCommentChange(photo._id, event.target.value)
+              }
+              error={Boolean(commentErrors[photo._id])}
+              helperText={commentErrors[photo._id] || ""}
+            />
+
+            <Button
+              variant="contained"
+              onClick={() => this.handleAddComment(photo._id)}
+              disabled={Boolean(submittingComments[photo._id])}
+            >
+              Add Comment
+            </Button>
           </div>
         ))}
       </div>

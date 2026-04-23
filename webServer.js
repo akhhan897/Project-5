@@ -120,6 +120,7 @@ app.use(async function (request, response, next) {
   }
 });
 
+app.use("/images", express.static(path.join(__dirname, "images")));
 app.use(express.static(__dirname));
 
 function filterUser(user) {
@@ -200,6 +201,65 @@ app.get("/test/:p1", function (request, response) {
   }
 });
 
+app.post("/user", async function (request, response) {
+  const {
+    login_name: loginName,
+    password,
+    first_name: firstName,
+    last_name: lastName,
+    location,
+    description,
+    occupation,
+  } = request.body || {};
+
+  if (!loginName) {
+    response.status(400).json({ message: "login_name is required" });
+    return;
+  }
+
+  if (!password) {
+    response.status(400).json({ message: "password is required" });
+    return;
+  }
+
+  if (!firstName) {
+    response.status(400).json({ message: "first_name is required" });
+    return;
+  }
+
+  if (!lastName) {
+    response.status(400).json({ message: "last_name is required" });
+    return;
+  }
+
+  try {
+    const existingUser = await User.findOne({ login_name: loginName });
+
+    if (existingUser) {
+      response.status(400).json({ message: "login_name already exists" });
+      return;
+    }
+
+    const newUser = await User.create({
+      login_name: loginName,
+      password,
+      first_name: firstName,
+      last_name: lastName,
+      location,
+      description,
+      occupation,
+    });
+
+    response.status(201).json({
+      message: "User registered successfully",
+      user: filterUser(newUser),
+    });
+  } catch (err) {
+    console.error("Error creating user:", err);
+    response.status(500).json({ message: "Internal server error" });
+  }
+});
+
 app.post("/admin/login", upload.none(), function (request, response) {
   const loginName = request.body && request.body.login_name;
   const password = request.body && request.body.password;
@@ -224,6 +284,15 @@ app.post("/admin/login", upload.none(), function (request, response) {
     request.session.userId = user._id;
     response.status(200).json(filterUser(user));
   });
+});
+
+app.get("/admin/current", function (request, response) {
+  if (!request.user) {
+    response.status(401).send("Unauthorized");
+    return;
+  }
+
+  response.status(200).json(filterUser(request.user));
 });
 
 app.post("/admin/logout", function (request, response) {
@@ -337,6 +406,22 @@ app.get("/photosOfUser/:id", isAuthenticated, async function (request, response)
   }
 });
 
+app.post(
+  "/commentsOfPhoto/:photo_id",
+  isAuthenticated,
+  async function (request, response) {
+    const photoId = request.params.photo_id;
+    const commentText = request.body && request.body.comment
+      ? request.body.comment.trim()
+      : "";
+
+    if (!mongoose.Types.ObjectId.isValid(photoId)) {
+      response.status(400).send("Bad photo id");
+      return;
+    }
+
+    if (!commentText) {
+      response.status(400).json({ message: "Comment cannot be empty" });
 app.post("/photos/new", isAuthenticated, function (request, response) {
   upload.single("uploadedphoto")(request, response, async function (err) {
     if (err) {
@@ -350,6 +435,40 @@ app.post("/photos/new", isAuthenticated, function (request, response) {
     }
 
     try {
+      const photo = await Photo.findById(photoId);
+
+      if (!photo) {
+        response.status(400).send("Photo not found");
+        return;
+      }
+
+      const newComment = {
+        comment: commentText,
+        date_time: new Date(),
+        user_id: request.session.userId,
+      };
+
+      photo.comments.push(newComment);
+      await photo.save();
+
+      const savedComment = photo.comments[photo.comments.length - 1];
+
+      response.status(201).json({
+        _id: savedComment._id,
+        comment: savedComment.comment,
+        date_time: savedComment.date_time,
+        user: {
+          _id: request.user._id,
+          first_name: request.user.first_name,
+          last_name: request.user.last_name,
+        },
+      });
+    } catch (err) {
+      console.error("Error adding comment to photo:", err);
+      response.status(500).send(JSON.stringify(err));
+    }
+  }
+);
       const photo = await Photo.create({
         file_name: request.file.filename,
         date_time: new Date(),

@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { AppBar, Toolbar, Typography } from "@mui/material";
+import { AppBar, Box, Button, Toolbar, Typography } from "@mui/material";
 import { withRouter, matchPath } from "react-router-dom";
 import "./TopBar.css";
 import fetchModel from "../../lib/fetchModelData";
 
 function TopBar(props) {
-  const { location } = props;
+  const {
+    currentUser,
+    location,
+    onLogout,
+  } = props;
   const [version, setVersion] = useState("");
   const [context, setContext] = useState("Photo Sharing App");
 
@@ -22,6 +26,11 @@ function TopBar(props) {
   }, []);
 
   useEffect(() => {
+    if (!currentUser) {
+      setContext("Photo Sharing App");
+      return;
+    }
+
     const userMatch = matchPath(location.pathname, {
       path: "/users/:userId",
       exact: true,
@@ -69,7 +78,7 @@ function TopBar(props) {
     }
 
     setContext("Photo Sharing App");
-  }, [location.pathname]);
+  }, [currentUser, location.pathname]);
 
   return (
     <AppBar className="topbar-appBar" position="fixed">
@@ -81,9 +90,22 @@ function TopBar(props) {
           </span>
         </Typography>
 
-        <Typography variant="h6" className="topbar-context" color="inherit">
-          {context}
-        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Typography variant="h6" className="topbar-context" color="inherit">
+            {currentUser ? context : "Please Login"}
+          </Typography>
+
+          {currentUser ? (
+            <>
+              <Typography variant="body1" color="inherit">
+                Hi {currentUser.first_name}
+              </Typography>
+              <Button color="inherit" onClick={onLogout}>
+                Logout
+              </Button>
+            </>
+          ) : null}
+        </Box>
       </Toolbar>
     </AppBar>
   );
