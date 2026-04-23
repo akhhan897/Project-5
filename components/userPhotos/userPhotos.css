@@ -2,6 +2,45 @@
   padding: 8px;
 }
 
+.photo-upload-form {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.photo-upload-input {
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.photo-upload-button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  background-color: #1976d2;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.photo-upload-button:hover {
+  background-color: #125ea7;
+}
+
+.photo-upload-button:disabled {
+  background-color: #9bbfe5;
+  cursor: not-allowed;
+}
+
+.photo-upload-error {
+  flex-basis: 100%;
+  color: #b00020;
+}
+
 .photo-card {
   margin-bottom: 24px;
   padding: 16px;

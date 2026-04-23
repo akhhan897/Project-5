@@ -36,6 +36,8 @@ mongoose.Promise = require("bluebird");
 
 const async = require("async");
 const bodyParser = require("body-parser");
+const fs = require("fs");
+const path = require("path");
 
 const express = require("express");
 const session = require("express-session");
@@ -56,7 +58,34 @@ mongoose.connect("mongodb://127.0.0.1/project6", {
   useUnifiedTopology: true,
 });
 
-const upload = multer({ storage: multer.memoryStorage() });
+const imagesDir = path.join(__dirname, "images");
+fs.mkdirSync(imagesDir, { recursive: true });
+
+function cleanFileName(fileName) {
+  const baseName = path.basename(fileName || "upload");
+  return baseName.replace(/[^a-zA-Z0-9._-]/g, "_") || "upload";
+}
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: function (request, file, callback) {
+      callback(null, imagesDir);
+    },
+    filename: function (request, file, callback) {
+      callback(null, Date.now() + "-" + cleanFileName(file.originalname));
+    },
+  }),
+  fileFilter: function (request, file, callback) {
+    if (!file.mimetype || !file.mimetype.startsWith("image/")) {
+      callback(new Error("Only image uploads are allowed"));
+      return;
+    }
+    callback(null, true);
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024,
+  },
+});
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -306,6 +335,39 @@ app.get("/photosOfUser/:id", isAuthenticated, async function (request, response)
     console.error("Error fetching photos of user:", err);
     response.status(500).send(JSON.stringify(err));
   }
+});
+
+app.post("/photos/new", isAuthenticated, function (request, response) {
+  upload.single("uploadedphoto")(request, response, async function (err) {
+    if (err) {
+      response.status(400).send(err.message || "Photo upload failed");
+      return;
+    }
+
+    if (!request.file) {
+      response.status(400).send("Missing uploaded photo");
+      return;
+    }
+
+    try {
+      const photo = await Photo.create({
+        file_name: request.file.filename,
+        date_time: new Date(),
+        user_id: request.session.userId,
+        comments: [],
+      });
+
+      response.status(200).json(photo);
+    } catch (saveErr) {
+      fs.unlink(request.file.path, function (unlinkErr) {
+        if (unlinkErr) {
+          console.error("Error removing failed upload:", unlinkErr);
+        }
+      });
+      console.error("Error saving uploaded photo:", saveErr);
+      response.status(500).send(JSON.stringify(saveErr));
+    }
+  });
 });
 
 app.post("/commentsOfPhoto/:photo_id", async function (request, response) {
