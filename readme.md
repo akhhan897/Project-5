@@ -6,7 +6,7 @@ Scrum Master: Krish Thakre
 
 Developers:
 - Aarav – TopBar + Version
-- Vasista – UserList + Navigation
+- Vasista – UserList + Navigation (Backend/frontend) fullstack
 - Japjot – UserDetail + Routing
 - Ali – UserPhotos + FetchModel
 
