@@ -198,6 +198,60 @@ app.get("/photosOfUser/:id", async function (request, response) {
   }
 });
 
+app.delete("/comments/:comment_id", async function (request, response) {
+  const commentId = request.params.comment_id;
+
+  if (!mongoose.Types.ObjectId.isValid(commentId)) {
+    response.status(400).send("Bad comment id");
+    return;
+  }
+
+  try {
+    const photo = await Photo.findOne({ "comments._id": commentId });
+
+    if (!photo) {
+      response.status(404).send("Comment not found");
+      return;
+    }
+
+    photo.comments = photo.comments.filter(function (comment) {
+      return comment._id.toString() !== commentId;
+    });
+
+    await photo.save();
+
+    response.status(200).send("Comment deleted");
+  } catch (err) {
+    console.error("Error deleting comment:", err);
+    response.status(500).send(JSON.stringify(err));
+  }
+});
+
+app.delete("/photos/:photo_id", async function (request, response) {
+  const photoId = request.params.photo_id;
+
+  if (!mongoose.Types.ObjectId.isValid(photoId)) {
+    response.status(400).send("Bad photo id");
+    return;
+  }
+
+  try {
+    const photo = await Photo.findById(photoId);
+
+    if (!photo) {
+      response.status(404).send("Photo not found");
+      return;
+    }
+
+    await Photo.deleteOne({ _id: photoId });
+
+    response.status(200).send("Photo deleted");
+  } catch (err) {
+    console.error("Error deleting photo:", err);
+    response.status(500).send(JSON.stringify(err));
+  }
+});
+
 const server = app.listen(3000, function () {
   const port = server.address().port;
   console.log(

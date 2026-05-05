@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Typography } from "@mui/material";
+import { Button, Typography } from "@mui/material";
 import fetchModel from "../../lib/fetchModelData";
 import "./userPhotos.css";
 
@@ -49,6 +49,45 @@ class UserPhotos extends React.Component {
       });
   }
 
+  handleDeletePhoto(photoId) {
+    fetchModel(`/photos/${photoId}`, {
+      method: "DELETE",
+    })
+      .then(() => {
+        this.setState((prevState) => ({
+          photos: prevState.photos.filter((photo) => photo._id !== photoId),
+        }));
+      })
+      .catch((error) => {
+        console.error("Error deleting photo:", error);
+        this.setState({
+          error: "Unable to delete photo.",
+        });
+      });
+  }
+
+  handleDeleteComment(commentId) {
+    fetchModel(`/comments/${commentId}`, {
+      method: "DELETE",
+    })
+      .then(() => {
+        this.setState((prevState) => ({
+          photos: prevState.photos.map((photo) => ({
+            ...photo,
+            comments: photo.comments
+              ? photo.comments.filter((comment) => comment._id !== commentId)
+              : [],
+          })),
+        }));
+      })
+      .catch((error) => {
+        console.error("Error deleting comment:", error);
+        this.setState({
+          error: "Unable to delete comment.",
+        });
+      });
+  }
+
   render() {
     const { photos, loading, error } = this.state;
 
@@ -73,6 +112,15 @@ class UserPhotos extends React.Component {
             <Typography variant="body2" className="photo-date">
               {photo.date_time}
             </Typography>
+
+            <Button
+              variant="contained"
+              color="error"
+              size="small"
+              onClick={() => this.handleDeletePhoto(photo._id)}
+            >
+              Delete Photo
+            </Button>
 
             <div className="photo-comments">
               <Typography variant="subtitle1" className="comments-title">
@@ -99,6 +147,15 @@ class UserPhotos extends React.Component {
                       )}
                       : {comment.comment}
                     </Typography>
+
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      size="small"
+                      onClick={() => this.handleDeleteComment(comment._id)}
+                    >
+                      Delete Comment
+                    </Button>
                   </div>
                 ))
               ) : (
