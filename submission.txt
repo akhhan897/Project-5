@@ -1,0 +1,11 @@
+Story Implemented:
+Deleting Comments, Photos, and Users
+
+Story Points:
+4
+
+Description:
+For Sprint 4, I implemented delete functionality for comments and photos. The backend includes DELETE routes for removing comments and photos from MongoDB. The React frontend includes Delete Comment and Delete Photo buttons, and the UI updates after deletion without crashing or requiring a page refresh.
+
+Total Story Points Completed:
+4
